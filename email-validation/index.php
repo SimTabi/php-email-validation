@@ -21,7 +21,7 @@
    *
    * @author Marc-Olivier Gosselin <mogosselin@mogosselin.com>
    * @link http://mogosselin.com/
-   * @version 1.0
+   * @version 1.1
    * @copyright © 2014 Marc-Olivier Gosselin
    */
 
@@ -43,6 +43,7 @@
 	// displayed in the drop down.	
 	$methods = array(
 					'filterVar' => 'Filter Var Native PHP Method',
+					'i18nFilterVar' => 'Filter Var Supporting International Email Addresses',
 					'customFilterVar' => 'Filter Var Without IPs',
 					'squiloople' => 'Squiloople Email Validator',
 					'simpleRegexpValidation' => 'Simple Regexp Validation', 
@@ -128,13 +129,53 @@
 		return false;
 	}
 
+	/**
+	* Checks if all the characters in a string are ASCII characters.
+	* If not, returns false
+	* @param str the string to check
+	* @return false if not all the characters are ascii
+	*/
+	function stringIsAscii($str) {
+		if (mb_detect_encoding($str, 'ASCII', true) === false) {
+			return false;
+		}
+
+		return true;
+	}
+
+	/**
+	* This method will encode email addresses with unicode characters
+	* into all Ascii characters. Domain part and local parts can now
+	* be unicode characters as said in the RFCs 5322, 6531, 3629 and 5321.
+	* This method will only encode the part(s) that has non ascii characters.
+	* 
+	* @param email the email to "punny code"
+	* @return will return the email "punny encoded", or full ASCII.
+	*/
+	function getPunnycodedEmail($email) {
+		$arEmail = explode('@', $email);
+		$localPart = $arEmail[0];
+		$domainPart = $arEmail[1];
+		
+		if (mb_detect_encoding($localPart, 'ASCII', true) === false) {
+			$localPart = idn_to_ascii($localPart);			
+		}
+
+		if (mb_detect_encoding($domainPart, 'ASCII', true) === false) {
+			$domainPart = idn_to_ascii($domainPart);
+		}
+
+		$email = $localPart . '@' . $domainPart;	
+		return $email;	
+	}
+
+
 	//////////////////////////////////////////////////////////////
 	// Validation Methods
 	// All the mtehods down here accept one parameter only which
 	// is an email to validate.
 	// They must return 0 if not valid or 1 if valid. (true or false)
 	//////////////////////////////////////////////////////////////	
-
 
 	/**
 	* Basic out of the box validation method
@@ -153,6 +194,24 @@
 	function customFilterVar($email) {
 		if (filter_var($email, FILTER_VALIDATE_EMAIL) && preg_match('/@.+\./', $email) && !preg_match('/@\[/', $email) && !preg_match('/".+@/', $email) && !preg_match('/=.+@/', $email))
 			return 1;
+		return 0;
+	}
+
+	/**
+	* filter_var with support for international email addresses 
+	* that contains non ascii characters.
+	*/
+	function i18nFilterVar($email) {
+		if (!stringIsAscii($email)) {
+			$email = getPunnycodedEmail($email);
+			echo $email;
+		}
+
+
+
+		if (filter_var($email, FILTER_VALIDATE_EMAIL))  {		
+			return 1;
+		}
 		return 0;
 	}
 
@@ -297,6 +356,7 @@ jack-o'neil@gmail.com
 ## List of valid unicode email addresses
 post@øl.no
 local@üñîçøðé.com
+stale@blåbærsyltetøy.no
 ## List of questionnable valid email addresses
 a@b
 "John Gate"@[10.0.3.19]
@@ -351,7 +411,7 @@ fdasfdsa.fdsafsda@host.com.zzz
 		</div>
 
 		<div>
-			<div><label for="method">Method used to validate:</label></div>
+			<div><label for="method">Method used to validate the email addresses:</label></div>
 			<select id="method" name="method">
 				<? foreach ($methods as $key => $value) { ?>
 					<option <? if ($method == $key) echo 'selected="selected"'; ?> value="<?= $key ?>"><?= $value ?></option>

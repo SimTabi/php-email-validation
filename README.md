@@ -1,4 +1,4 @@
 php
 ===
 
-PHP classes and stuff
+Different PHP classes and utilities
