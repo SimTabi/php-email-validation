@@ -21,7 +21,7 @@
    *
    * @author Marc-Olivier Gosselin <mogosselin@mogosselin.com>
    * @link http://mogosselin.com/
-   * @version 1.1
+   * @version 1.0
    * @copyright © 2014 Marc-Olivier Gosselin
    */
 
@@ -157,13 +157,19 @@
 		$localPart = $arEmail[0];
 		$domainPart = $arEmail[1];
 		
-		if (mb_detect_encoding($localPart, 'ASCII', true) === false) {
-			$localPart = idn_to_ascii($localPart);			
-		}
+		if (!function_exists('idn_to_ascii')) {
+			die('Your server doesn\'t support idn_to_ascii :(  You\'ll need an independent library such as http://phlymail.com/en/downloads/idna-convert.html');
+		} else {
 
-		if (mb_detect_encoding($domainPart, 'ASCII', true) === false) {
-			$domainPart = idn_to_ascii($domainPart);
-		}
+			if (mb_detect_encoding($localPart, 'ASCII', true) === false) {
+				$localPart = idn_to_ascii($localPart);			
+			}
+
+			if (mb_detect_encoding($domainPart, 'ASCII', true) === false) {
+				$domainPart = idn_to_ascii($domainPart);
+			}
+
+		}		
 
 		$email = $localPart . '@' . $domainPart;	
 		return $email;	
@@ -202,11 +208,10 @@
 	* that contains non ascii characters.
 	*/
 	function i18nFilterVar($email) {
+
 		if (!stringIsAscii($email)) {
 			$email = getPunnycodedEmail($email);
-			echo $email;
 		}
-
 
 
 		if (filter_var($email, FILTER_VALIDATE_EMAIL))  {		
@@ -411,7 +416,7 @@ fdasfdsa.fdsafsda@host.com.zzz
 		</div>
 
 		<div>
-			<div><label for="method">Method used to validate the email addresses:</label></div>
+			<div><label for="method">Method used to validate:</label></div>
 			<select id="method" name="method">
 				<? foreach ($methods as $key => $value) { ?>
 					<option <? if ($method == $key) echo 'selected="selected"'; ?> value="<?= $key ?>"><?= $value ?></option>
